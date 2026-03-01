@@ -48,19 +48,22 @@ require("h-claude").setup()
 require("h-claude").setup({
   prompt_prefix = "> ",  -- prepended to each line of the original selection in append mode
   claude_prefix = "",    -- prepended to each line of claude's response
+  sidebar = {
+    width = 50,          -- width of the sidebar window in characters
+    side = "right",      -- "left" or "right"
+  },
 })
 ```
 
 ## Usage
 
-### Visual Mode Mappings
+### Mappings
 
-Select text in visual mode, then:
-
-| Mapping | Description |
-|---|---|
-| `<leader>cr` | **Replace** — replaces the selection with claude's response |
-| `<leader>ca` | **Append** — re-inserts the selection (quoted with `prompt_prefix`), then claude's response below |
+| Mode | Mapping | Description |
+|---|---|---|
+| Visual | `<leader>cr` | **Replace** — replaces the selection with claude's response |
+| Visual | `<leader>ca` | **Append** — re-inserts the selection (quoted with `prompt_prefix`), then claude's response below |
+| Normal | `<leader>co` | **Open** — opens the sidebar window |
 
 ### User Commands
 
@@ -68,6 +71,7 @@ These also work from visual mode with `:'<,'>`:
 
 - `:ClaudeReplace` — same as `<leader>cr`
 - `:ClaudeAppend` — same as `<leader>ca`
+- `:ClaudeOpen` — same as `<leader>co`
 
 ### How It Works
 
