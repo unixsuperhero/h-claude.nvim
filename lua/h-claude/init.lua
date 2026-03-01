@@ -3,6 +3,17 @@ local M = {}
 M.config = {
   prompt_prefix = "> ",
   claude_prefix = "",
+  sidebar = {
+    width = 50,
+    side = "right", -- "left" or "right"
+  },
+}
+
+-- Track the sidebar buffer/window
+M._sidebar = {
+  bufnr = nil,
+  winid = nil,
+  augroup = nil,
 }
 
 function M.setup(opts)
@@ -13,6 +24,76 @@ function M.setup(opts)
     { desc = "Claude: replace selection with response" })
   vim.keymap.set("v", "<leader>ca", function() M.ask("append") end,
     { desc = "Claude: append response after quoted selection" })
+  vim.keymap.set("n", "<leader>co", function() M.open() end,
+    { desc = "Claude: open sidebar" })
+end
+
+function M.open()
+  local sb = M._sidebar
+  local cfg = M.config.sidebar
+
+  -- If sidebar window is already open and valid, just jump to it
+  if sb.winid and vim.api.nvim_win_is_valid(sb.winid) then
+    vim.api.nvim_set_current_win(sb.winid)
+    return
+  end
+
+  -- Create scratch buffer if needed (or reuse existing one)
+  if not sb.bufnr or not vim.api.nvim_buf_is_valid(sb.bufnr) then
+    sb.bufnr = vim.api.nvim_create_buf(false, true) -- unlisted, scratch
+    vim.bo[sb.bufnr].buftype = "nofile"
+    vim.bo[sb.bufnr].bufhidden = "hide"
+    vim.bo[sb.bufnr].swapfile = false
+  end
+
+  -- Open the window on the configured side
+  local split_cmd = cfg.side == "left" and "topleft" or "botright"
+  vim.cmd(split_cmd .. " vsplit")
+  local winid = vim.api.nvim_get_current_win()
+  vim.api.nvim_win_set_buf(winid, sb.bufnr)
+  vim.api.nvim_win_set_width(winid, cfg.width)
+
+  -- Set window options to keep it fixed
+  vim.wo[winid].winfixwidth = true
+  vim.wo[winid].number = false
+  vim.wo[winid].relativenumber = false
+  vim.wo[winid].signcolumn = "no"
+  vim.wo[winid].winfixbuf = true
+
+  sb.winid = winid
+
+  -- Clean up old autocmds if any
+  if sb.augroup then
+    vim.api.nvim_del_augroup_by_id(sb.augroup)
+  end
+
+  -- Create autocmd group to enforce width
+  sb.augroup = vim.api.nvim_create_augroup("HClaudeSidebar", { clear = true })
+
+  vim.api.nvim_create_autocmd("WinResized", {
+    group = sb.augroup,
+    callback = function()
+      if sb.winid and vim.api.nvim_win_is_valid(sb.winid) then
+        local current_width = vim.api.nvim_win_get_width(sb.winid)
+        if current_width ~= cfg.width then
+          vim.api.nvim_win_set_width(sb.winid, cfg.width)
+        end
+      end
+    end,
+  })
+
+  -- Track when the window is closed so we stop enforcing
+  vim.api.nvim_create_autocmd("WinClosed", {
+    group = sb.augroup,
+    pattern = tostring(winid),
+    callback = function()
+      sb.winid = nil
+      if sb.augroup then
+        vim.api.nvim_del_augroup_by_id(sb.augroup)
+        sb.augroup = nil
+      end
+    end,
+  })
 end
 
 -- Get the visual selection lines and range

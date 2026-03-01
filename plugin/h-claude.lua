@@ -8,3 +8,7 @@ end, { range = true, desc = "Claude: replace selection with response" })
 vim.api.nvim_create_user_command("ClaudeAppend", function()
   require("h-claude").ask("append")
 end, { range = true, desc = "Claude: append response after quoted selection" })
+
+vim.api.nvim_create_user_command("ClaudeOpen", function()
+  require("h-claude").open()
+end, { desc = "Claude: open sidebar" })
