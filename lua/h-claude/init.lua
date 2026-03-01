@@ -46,15 +46,17 @@ function M.open()
     vim.bo[sb.bufnr].swapfile = false
   end
 
-  -- Open the window on the configured side
-  local split_cmd = cfg.side == "left" and "topleft" or "botright"
-  vim.cmd(split_cmd .. " vsplit")
+  -- Open the window on the configured side, spanning full height
+  vim.cmd("vsplit")
   local winid = vim.api.nvim_get_current_win()
   vim.api.nvim_win_set_buf(winid, sb.bufnr)
+  -- Move to far side (like ctrl-w L/H) so it spans full window height
+  vim.cmd("wincmd " .. (cfg.side == "left" and "H" or "L"))
   vim.api.nvim_win_set_width(winid, cfg.width)
 
   -- Set window options to keep it fixed
   vim.wo[winid].winfixwidth = true
+  vim.wo[winid].winfixheight = true
   vim.wo[winid].number = false
   vim.wo[winid].relativenumber = false
   vim.wo[winid].signcolumn = "no"
@@ -77,6 +79,12 @@ function M.open()
         local current_width = vim.api.nvim_win_get_width(sb.winid)
         if current_width ~= cfg.width then
           vim.api.nvim_win_set_width(sb.winid, cfg.width)
+        end
+        -- Ensure full height (accounts for command line, status line, etc.)
+        local expected_height = vim.o.lines - vim.o.cmdheight - 1
+        local current_height = vim.api.nvim_win_get_height(sb.winid)
+        if current_height ~= expected_height then
+          vim.api.nvim_win_set_height(sb.winid, expected_height)
         end
       end
     end,
